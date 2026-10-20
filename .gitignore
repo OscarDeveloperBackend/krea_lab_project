@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Builds & compiled files
+dist/
+*/dist/
+build/
+*/build/
+/tmp
+/out-tsc
+/bazel-out
+.angular/cache
+*/.angular/cache
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+*.env
+*.env.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Git backups
+.git_backups/
+
+# System and IDE
+.DS_Store
+Thumbs.db
+.idea/
+.project
+.classpath
+.settings/
+*.sublime-workspace

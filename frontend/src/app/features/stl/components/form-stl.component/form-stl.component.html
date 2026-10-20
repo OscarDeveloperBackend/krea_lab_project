@@ -1,0 +1,166 @@
+<div
+  class="h-full flex flex-col justify-between bg-[#171817] border border-zinc-800 rounded-xl shadow-lg font-sans overflow-hidden"
+>
+  <!-- Card Header -->
+  <div class="px-5 py-3.5 border-b border-zinc-800 bg-[#131413] flex items-center justify-between">
+    <div>
+      <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-400">Paso 2</p>
+      <h2 class="text-sm font-bold text-white">Parámetros de la Pieza</h2>
+    </div>
+    <span
+      class="rounded-md border border-zinc-700 bg-zinc-800/80 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-300"
+    >
+      {{ selectedTechnology() === 'FILAMENTO' ? 'FDM · Filamento' : 'SLA · Resina' }}
+    </span>
+  </div>
+
+  <form [formGroup]="form()" class="p-5 flex-1 flex flex-col justify-between space-y-4">
+    <div class="grid grid-cols-2 gap-3">
+      <!-- Tecnología -->
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Tecnología</label>
+        <select
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+          [value]="selectedTechnology()"
+          (change)="onTecnologiaChange($event)"
+        >
+          <option value="FILAMENTO">Filamento (FDM)</option>
+          <option value="RESINA">Resina (SLA)</option>
+        </select>
+      </div>
+
+      <!-- Material -->
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Material</label>
+        <select
+          formControlName="materialId"
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+          [class.border-red-500]="hasError('materialId')"
+        >
+          <option value="">Seleccionar material</option>
+          @for (material of materiales(); track material.id) {
+            <option [value]="material.id">
+              {{ material.nombre }} {{ material.marca ? '(' + material.marca + ')' : '' }}
+            </option>
+          }
+        </select>
+        @if (hasError('materialId')) {
+          <p class="text-[9px] text-red-400">Material requerido</p>
+        }
+      </div>
+
+      <!-- Gramos (STL) máximo 2 decimales -->
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          {{ stlData() ? 'Gramos (STL)' : 'Gramos' }}
+        </label>
+        @if (stlData() && gramosCalculados() !== null) {
+          <div class="relative">
+            <input
+              type="text"
+              [value]="gramosCalculados() | number: '1.0-2'"
+              readonly
+              class="w-full h-9 px-2.5 bg-zinc-900 border border-emerald-900/60 rounded-lg text-xs text-emerald-300 font-semibold"
+            />
+            <span class="absolute right-2.5 top-2 text-[9px] font-bold text-emerald-500">AUTO</span>
+          </div>
+        } @else {
+          <input
+            formControlName="gramos"
+            type="number"
+            min="1"
+            class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+          />
+        }
+      </div>
+
+      <!-- Cantidad -->
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Cantidad (u.)</label>
+        <input
+          formControlName="cantidad"
+          type="number"
+          min="1"
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+          [class.border-red-500]="hasError('cantidad')"
+        />
+      </div>
+
+      <!-- Horas y Minutos -->
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Horas impresión</label>
+        <input
+          formControlName="horas"
+          type="number"
+          min="0"
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+        />
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Minutos</label>
+        <input
+          formControlName="minutos"
+          type="number"
+          min="0"
+          max="59"
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+        />
+      </div>
+
+      <!-- Relleno (%) -->
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+          Relleno (%)
+          @if (selectedTechnology() === 'RESINA') {
+            <span class="text-zinc-600">(N/A)</span>
+          }
+        </label>
+        <input
+          formControlName="relleno"
+          type="number"
+          min="0"
+          max="100"
+          placeholder="20"
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      <!-- Setup adicional -->
+      <div class="space-y-1">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Setup base (S/)</label>
+        <input
+          formControlName="setup"
+          type="number"
+          min="0"
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+        />
+      </div>
+
+      <!-- Insumos extra -->
+      <div class="space-y-1 col-span-2">
+        <label class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Insumos extra (S/)</label>
+        <input
+          formControlName="insumosExtra"
+          type="number"
+          min="0"
+          placeholder="0"
+          class="w-full h-9 px-2.5 bg-[#121212] border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-orange-500"
+        />
+      </div>
+    </div>
+
+    <!-- Barra inferior del form: Información limpia sin botón duplicado -->
+    <div class="pt-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+      @if (stlData(); as stl) {
+        <span class="text-emerald-400 truncate font-medium flex items-center gap-1.5" [title]="stl.nombreArchivo">
+          <span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
+          {{ stl.nombreArchivo }}
+        </span>
+      } @else {
+        <span class="text-zinc-500 text-[11px]">Esperando archivo STL...</span>
+      }
+      <span class="text-[10px] text-zinc-500">Ajusta el precio a la derecha 👉</span>
+    </div>
+  </form>
+</div>

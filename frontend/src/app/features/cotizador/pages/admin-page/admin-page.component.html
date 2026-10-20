@@ -1,0 +1,284 @@
+<main class="min-h-screen bg-[#111211] px-4 py-8 text-zinc-300 md:px-8 font-sans">
+  <div class="mx-auto w-full max-w-7xl space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-5">
+      <div>
+        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-400">
+          Administración
+        </p>
+        <h1 class="mt-1 text-2xl font-bold text-white">Panel de Cotizaciones</h1>
+        <p class="mt-1 text-xs text-zinc-400">
+          Historial y gestión de cotizaciones registradas en la base de datos
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          (click)="cargarCotizaciones()"
+          class="flex items-center gap-2 rounded-lg border border-zinc-800 bg-[#161716] px-4 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800 hover:text-white"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refrescar
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de 3 Filtros (Cliente / Estado / Material) -->
+    <section class="rounded-xl border border-zinc-800 bg-[#161716] p-4 shadow-sm">
+      <form [formGroup]="filtrosForm" class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 items-end">
+        <!-- Filtro 1: Nombre de Cliente / Búsqueda -->
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Filtro 1: Cliente / Pedido
+          </label>
+          <div class="relative">
+            <input
+              type="text"
+              formControlName="search"
+              placeholder="Buscar por cliente o pedido..."
+              class="h-10 w-full rounded-lg border border-zinc-800 bg-[#121312] pl-9 pr-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-orange-500"
+            />
+            <svg class="absolute left-3 top-3 h-4 w-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Filtro 2: Estado (Estados exactos que acepta el backend) -->
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Filtro 2: Estado
+          </label>
+          <select
+            formControlName="estado"
+            class="h-10 w-full rounded-lg border border-zinc-800 bg-[#121312] px-3 text-xs text-white outline-none focus:border-orange-500"
+          >
+            <option value="">Todos los estados</option>
+            <option value="PENDIENTE">PENDIENTE</option>
+            <option value="ENVIADA">ENVIADA</option>
+            <option value="ACEPTADA">ACEPTADA</option>
+            <option value="EN_PROCESO">EN PROCESO</option>
+            <option value="RECHAZADA">RECHAZADA</option>
+            <option value="VENCIDA">VENCIDA</option>
+          </select>
+        </div>
+
+        <!-- Filtro 3: Material -->
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Filtro 3: Material
+          </label>
+          <select
+            formControlName="materialId"
+            class="h-10 w-full rounded-lg border border-zinc-800 bg-[#121312] px-3 text-xs text-white outline-none focus:border-orange-500"
+          >
+            <option value="">Todos los materiales</option>
+            @for (m of materiales(); track m.id) {
+              <option [value]="m.id">{{ m.nombre }} ({{ m.tecnologia }})</option>
+            }
+          </select>
+        </div>
+
+        <!-- Botón Limpiar filtros -->
+        <div>
+          @if (hasActiveFilters()) {
+            <button
+              type="button"
+              (click)="limpiarFiltros()"
+              class="h-10 w-full rounded-lg border border-red-900/60 bg-red-950/20 text-xs font-semibold text-red-400 transition hover:bg-red-950/40"
+            >
+              Limpiar filtros
+            </button>
+          } @else {
+            <div class="h-10 flex items-center text-xs text-zinc-500 italic">
+              Mostrando todas las cotizaciones
+            </div>
+          }
+        </div>
+      </form>
+    </section>
+
+    <!-- Error message si la API falla con auto-dismiss 3s -->
+    @if (errorMessage()) {
+      <div class="rounded-lg border border-red-800 bg-red-950/50 p-4 text-xs text-red-300 flex items-center justify-between">
+        <span>{{ errorMessage() }}</span>
+        <span class="text-[10px] text-red-400 font-normal">se cerrará en 3s</span>
+      </div>
+    }
+
+    <!-- Tabla de Cotizaciones -->
+    <section class="rounded-xl border border-zinc-800 bg-[#161716] overflow-hidden shadow-lg">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-zinc-300">
+          <thead class="border-b border-zinc-800 bg-[#121312] text-[10px] uppercase font-bold tracking-wider text-zinc-400">
+            <tr>
+              <th scope="col" class="px-4 py-3.5">ID</th>
+              <th scope="col" class="px-4 py-3.5">Cliente</th>
+              <th scope="col" class="px-4 py-3.5">Pedido</th>
+              <th scope="col" class="px-4 py-3.5 text-center">Piezas</th>
+              <th scope="col" class="px-4 py-3.5">Materiales</th>
+              <th scope="col" class="px-4 py-3.5">Modo</th>
+              <th scope="col" class="px-4 py-3.5 text-right">Total</th>
+              <th scope="col" class="px-4 py-3.5 text-center">Estado</th>
+              <th scope="col" class="px-4 py-3.5">Fecha</th>
+              <th scope="col" class="px-4 py-3.5 text-center">Detalle</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-zinc-800/60">
+            @if (isLoading()) {
+              <tr>
+                <td colspan="10" class="py-12 text-center text-zinc-400">
+                  <div class="flex items-center justify-center gap-2">
+                    <span class="h-5 w-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></span>
+                    <span>Cargando cotizaciones...</span>
+                  </div>
+                </td>
+              </tr>
+            } @else if (cotizaciones().length === 0) {
+              <tr>
+                <td colspan="10" class="py-12 text-center text-zinc-500">
+                  No se encontraron cotizaciones con los criterios seleccionados.
+                </td>
+              </tr>
+            } @else {
+              @for (c of cotizaciones(); track c.id) {
+                <tr class="transition hover:bg-zinc-800/30">
+                  <!-- ID -->
+                  <td class="px-4 py-3.5 font-bold text-orange-400">#{{ c.id }}</td>
+
+                  <!-- Cliente -->
+                  <td class="px-4 py-3.5">
+                    <p class="font-semibold text-white">{{ c.nombreCliente }}</p>
+                    <p class="text-[11px] text-zinc-500">{{ c.telefonoCliente }}</p>
+                  </td>
+
+                  <!-- Pedido -->
+                  <td class="px-4 py-3.5 font-medium text-zinc-200">
+                    {{ c.nombrePedido || 'Sin título' }}
+                  </td>
+
+                  <!-- Cantidad Piezas -->
+                  <td class="px-4 py-3.5 text-center font-bold text-zinc-300">
+                    {{ c.cantidadPiezas }}
+                  </td>
+
+                  <!-- Materiales -->
+                  <td class="px-4 py-3.5">
+                    <div class="flex flex-wrap gap-1">
+                      @for (mat of c.materiales; track mat) {
+                        <span class="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300">
+                          {{ mat }}
+                        </span>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Modo -->
+                  <td class="px-4 py-3.5">
+                    <span class="text-zinc-400 uppercase text-[10px] font-semibold">
+                      {{ c.modoEntrega }}
+                    </span>
+                  </td>
+
+                  <!-- Total -->
+                  <td class="px-4 py-3.5 text-right font-black text-white whitespace-nowrap">
+                    S/ {{ c.precioTotal }}
+                  </td>
+
+                  <!-- Estado -->
+                  <td class="px-4 py-3.5 text-center">
+                    <span
+                      class="rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border inline-block"
+                      [class.bg-amber-950/50]="c.estado === 'PENDIENTE'"
+                      [class.text-amber-400]="c.estado === 'PENDIENTE'"
+                      [class.border-amber-800]="c.estado === 'PENDIENTE'"
+                      [class.bg-blue-950/50]="c.estado === 'ENVIADA'"
+                      [class.text-blue-400]="c.estado === 'ENVIADA'"
+                      [class.border-blue-800]="c.estado === 'ENVIADA'"
+                      [class.bg-emerald-950/50]="c.estado === 'ACEPTADA'"
+                      [class.text-emerald-400]="c.estado === 'ACEPTADA'"
+                      [class.border-emerald-800]="c.estado === 'ACEPTADA'"
+                      [class.bg-purple-950/50]="c.estado === 'EN_PROCESO'"
+                      [class.text-purple-400]="c.estado === 'EN_PROCESO'"
+                      [class.border-purple-800]="c.estado === 'EN_PROCESO'"
+                      [class.bg-red-950/50]="c.estado === 'RECHAZADA'"
+                      [class.text-red-400]="c.estado === 'RECHAZADA'"
+                      [class.border-red-800]="c.estado === 'RECHAZADA'"
+                      [class.bg-zinc-800/80]="c.estado === 'VENCIDA'"
+                      [class.text-zinc-400]="c.estado === 'VENCIDA'"
+                      [class.border-zinc-700]="c.estado === 'VENCIDA'"
+                    >
+                      {{ c.estado }}
+                    </span>
+                  </td>
+
+                  <!-- Fecha -->
+                  <td class="px-4 py-3.5 text-[11px] text-zinc-500 whitespace-nowrap">
+                    {{ c.createdAt | slice:0:10 }}
+                  </td>
+
+                  <!-- Acción: Icono de Ojo para abrir modal de detalle -->
+                  <td class="px-4 py-3.5 text-center">
+                    <button
+                      type="button"
+                      (click)="verDetalle(c.id)"
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-300 transition hover:border-orange-500 hover:bg-orange-500/10 hover:text-orange-400"
+                      title="Ver detalle de cotización"
+                    >
+                      <!-- Icono Ojo -->
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      @if (totalPages() > 1) {
+        <div class="flex items-center justify-between border-t border-zinc-800 bg-[#121312] px-4 py-3 text-xs text-zinc-400">
+          <div>
+            Página <strong class="text-white">{{ currentPage() }}</strong> de <strong class="text-white">{{ totalPages() }}</strong>
+            <span class="ml-2 text-zinc-600">({{ totalItems() }} cotizaciones en total)</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              [disabled]="currentPage() === 1"
+              (click)="cambiarPagina(currentPage() - 1)"
+              class="rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              [disabled]="currentPage() === totalPages()"
+              (click)="cambiarPagina(currentPage() + 1)"
+              class="rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+    </section>
+  </div>
+
+  <!-- Modal Detalle -->
+  <app-cotizacion-modal
+    [cotizacion]="selectedCotizacion()"
+    [isOpen]="isModalOpen()"
+    [isLoading]="isModalLoading()"
+    (close)="cerrarModal()"
+  />
+</main>

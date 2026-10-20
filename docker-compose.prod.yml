@@ -1,0 +1,87 @@
+services:
+  # -------------------------------------------------------------
+  # Base de Datos PostgreSQL
+  # -------------------------------------------------------------
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: krea_lab_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # No exponemos el puerto 5432 al exterior (solo accesible en la red privada interna)
+    volumes:
+      - krea_postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - krea_lab_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -------------------------------------------------------------
+  # API Backend Node.js / Express / Prisma
+  # -------------------------------------------------------------
+  backend_app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: krea_lab_backend:latest
+    container_name: krea_lab_backend_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}?schema=public"
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+    # Exponemos 3100 al host para que el proxy inverso de Webuzo (Nginx/Apache) reenvíe el tráfico
+    # Opcionalmente se puede atar solo a 127.0.0.1: 127.0.0.1:${BACKEND_PORT:-3100}:3100
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-3100}:3100"
+    networks:
+      - krea_lab_network
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3100/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # -------------------------------------------------------------
+  # Frontend Angular / Nginx SPA
+  # -------------------------------------------------------------
+  frontend_app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: krea_lab_frontend:latest
+    container_name: krea_lab_frontend_prod
+    restart: always
+    # Exponemos el frontend en un puerto interno del host (ej. 8080)
+    # para que Webuzo actúe de reverse proxy con SSL y dominio hacia este puerto.
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:80"
+    networks:
+      - krea_lab_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  krea_lab_network:
+    name: krea_lab_prod_network
+    driver: bridge
+
+volumes:
+  krea_postgres_prod_data:
+    name: krea_lab_postgres_prod_data

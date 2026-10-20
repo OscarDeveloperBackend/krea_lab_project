@@ -1,0 +1,371 @@
+<main class="min-h-screen bg-[#111211] px-4 py-6 text-zinc-300 md:px-8">
+  <div
+    class="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_380px]"
+  >
+    <div class="min-w-0 space-y-6">
+      <!-- Configuración inicial plegable -->
+      <configuracion-general
+        [configuracion]="configuracion()"
+        [modoSeleccionado]="selectedMode()"
+        (modoChange)="onModoChange($event)"
+        (configuracionChange)="onConfiguracionChange($event)"
+      />
+
+      <!-- Datos del Cliente -->
+      <section class="border-y border-zinc-800 py-5">
+        <div class="mb-4">
+          <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-400">
+            Cliente y Pedido
+          </p>
+          <h1 class="mt-1 text-base font-semibold text-white">Datos de Contacto</h1>
+        </div>
+        <form [formGroup]="clienteForm" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <label class="space-y-1 text-[11px] text-zinc-400">
+            <span class="block">Nombre del cliente *</span>
+            <input
+              formControlName="nombre"
+              type="text"
+              autocomplete="name"
+              placeholder="Ej. Juan Pérez"
+              class="h-9 w-full rounded-lg border border-zinc-800 bg-[#171817] px-3 text-xs text-white outline-none focus:border-orange-500"
+            />
+            @if (clienteForm.controls.nombre.touched && clienteForm.controls.nombre.invalid) {
+              <p class="text-[10px] text-red-400">El nombre es requerido (mín. 2 letras).</p>
+            }
+          </label>
+          <label class="space-y-1 text-[11px] text-zinc-400">
+            <span class="block">Teléfono / WhatsApp *</span>
+            <input
+              formControlName="whatsapp"
+              type="tel"
+              autocomplete="tel"
+              placeholder="+51 987654321"
+              class="h-9 w-full rounded-lg border border-zinc-800 bg-[#171817] px-3 text-xs text-white outline-none focus:border-orange-500"
+            />
+            @if (clienteForm.controls.whatsapp.touched && clienteForm.controls.whatsapp.invalid) {
+              <p class="text-[10px] text-red-400">Teléfono válido requerido (7-20 dígitos).</p>
+            }
+          </label>
+          <label class="space-y-1 text-[11px] text-zinc-400">
+            <span class="block"
+              >Correo electrónico <span class="text-zinc-600">(opcional)</span></span
+            >
+            <input
+              formControlName="email"
+              type="email"
+              autocomplete="email"
+              placeholder="cliente@ejemplo.com"
+              class="h-9 w-full rounded-lg border border-zinc-800 bg-[#171817] px-3 text-xs text-white outline-none focus:border-orange-500"
+            />
+            @if (clienteForm.controls.email.touched && clienteForm.controls.email.invalid) {
+              <p class="text-[10px] text-red-400">El formato de correo no es válido.</p>
+            }
+          </label>
+          <label class="space-y-1 text-[11px] text-zinc-400">
+            <span class="block">Nombre del pedido o proyecto *</span>
+            <input
+              formControlName="nombrePaquete"
+              type="text"
+              placeholder="Ej. Prototipo Carcasa v2"
+              class="h-9 w-full rounded-lg border border-zinc-800 bg-[#171817] px-3 text-xs text-white outline-none focus:border-orange-500"
+            />
+            @if (clienteForm.controls.nombrePaquete.touched && clienteForm.controls.nombrePaquete.invalid) {
+              <p class="text-[10px] text-red-400">El nombre del pedido es obligatorio.</p>
+            }
+          </label>
+          <label class="space-y-1 text-[11px] text-zinc-400 md:col-span-2">
+            <span class="block"
+              >Comentario o notas internas <span class="text-zinc-600">(opcional)</span></span
+            >
+            <textarea
+              formControlName="comentarioPedido"
+              rows="2"
+              placeholder="Notas de entrega, tolerancias, especificaciones especiales..."
+              class="w-full resize-y rounded-lg border border-zinc-800 bg-[#171817] px-3 py-2 text-xs text-white outline-none placeholder:text-zinc-600 focus:border-orange-500"
+            ></textarea>
+          </label>
+        </form>
+      </section>
+
+      <!-- Subida y Validación STL -->
+      <section>
+        <div class="mb-3 flex items-end justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-400">
+              Paso 1: Archivo 3D
+            </p>
+            <h2 class="mt-0.5 text-base font-semibold text-white">Cargar Modelo STL</h2>
+          </div>
+          <label
+            class="inline-flex h-9 cursor-pointer items-center rounded-lg bg-orange-600 px-4 text-xs font-semibold text-white shadow transition hover:bg-orange-500 active:scale-95"
+          >
+            {{ isAnalyzingStl() ? 'Analizando malla...' : 'Seleccionar archivo .stl' }}
+            <input
+              type="file"
+              accept=".stl,model/stl"
+              class="sr-only"
+              [disabled]="isAnalyzingStl()"
+              (change)="onArchivoSeleccionado($event)"
+            />
+          </label>
+        </div>
+
+        @if (stlData(); as stl) {
+          <div class="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-3.5">
+            <div
+              class="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-900/40 pb-2.5"
+            >
+              <div class="min-w-0">
+                <p class="truncate text-xs font-bold text-emerald-200">{{ stl.nombreArchivo }}</p>
+                <p class="break-all text-[9px] text-zinc-500">Hash: {{ stl.hash }}</p>
+              </div>
+              <span class="rounded bg-emerald-900/60 px-2 py-0.5 text-[9px] uppercase font-bold text-emerald-300">
+                STL Validado
+              </span>
+            </div>
+            <!-- Dimensiones y Geometría Redondeada Sin Decimales Feos -->
+            <dl class="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2 text-[11px] sm:grid-cols-4">
+              <div>
+                <dt class="text-[10px] text-zinc-500">Dimensiones (X × Y × Z)</dt>
+                <dd class="font-bold text-zinc-100">
+                  {{ stl.dimensionX | number: '1.0-1' }} × {{ stl.dimensionY | number: '1.0-1' }} × {{ stl.dimensionZ | number: '1.0-1' }} mm
+                </dd>
+              </div>
+              <div>
+                <dt class="text-[10px] text-zinc-500">Volumen</dt>
+                <dd class="font-semibold text-zinc-200">{{ stl.volumen | number: '1.0-2' }} cm³</dd>
+              </div>
+              <div>
+                <dt class="text-[10px] text-zinc-500">Área</dt>
+                <dd class="font-semibold text-zinc-200">{{ stl.area | number: '1.0-1' }} mm²</dd>
+              </div>
+              <div>
+                <dt class="text-[10px] text-zinc-500">Triángulos</dt>
+                <dd class="font-semibold text-zinc-200">
+                  {{ stl.cantidadTriangulos }} ({{ stl.esMallaCerrada ? 'Cerrada' : 'Abierta' }})
+                </dd>
+              </div>
+            </dl>
+          </div>
+        } @else {
+          <div
+            class="rounded-xl border border-dashed border-zinc-800 px-4 py-6 text-center text-xs text-zinc-500 bg-[#141514]"
+          >
+            @if (isAnalyzingStl()) {
+              <div class="flex items-center justify-center gap-2 text-orange-400">
+                <span class="h-4 w-4 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></span>
+                <span>Analizando geometría y volumen del archivo STL...</span>
+              </div>
+            } @else {
+              Selecciona un archivo <strong>.stl</strong> para calcular su volumen, dimensiones y precios.
+            }
+          </div>
+        }
+
+        @if (errorMessage()) {
+          <div class="mt-3 rounded-lg border-l-4 border-red-500 bg-red-950/50 px-3.5 py-2.5 text-xs text-red-300 flex items-center justify-between animate-fade-in">
+            <span>{{ errorMessage() }}</span>
+            <span class="text-[10px] text-red-400 font-normal">se cerrará en 3s</span>
+          </div>
+        }
+      </section>
+
+      <!-- SECCIÓN LADO A LADO: PARÁMETROS DE LA PIEZA (IZQ) Y VISTA PREVIA DEL PRECIO (DER) -->
+      @if (stlData()) {
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+          <!-- Columna Izquierda: Parámetros de impresión y material (Sin botón duplicado) -->
+          <div class="h-full">
+            <form-stl
+              [configuracion]="configuracion()"
+              [materiales]="materialesPorTecnologia()"
+              [selectedTechnology]="selectedTechnology()"
+              [selectedMode]="selectedMode()"
+              [stlData]="stlData()"
+              [gramosCalculados]="currentPreview()?.gramos ?? null"
+              [form]="piezaForm"
+              (tecnologiaChange)="onTecnologiaChange($event)"
+            />
+          </div>
+
+          <!-- Columna Derecha: Desglose por Unidad & Vista Previa del Precio (Un solo botón para agregar) -->
+          @if (currentPreview(); as preview) {
+            <div class="h-full flex flex-col justify-between bg-[#171817] border border-zinc-800 rounded-xl shadow-lg font-sans overflow-hidden">
+              <!-- Header -->
+              <div class="px-5 py-3.5 border-b border-zinc-800 bg-[#131413] flex items-center justify-between">
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-400">Paso 3</p>
+                  <h2 class="text-sm font-bold text-white">Vista Previa del Precio</h2>
+                </div>
+                <span class="rounded bg-orange-950/60 border border-orange-800/80 px-2 py-0.5 text-[10px] font-semibold text-orange-400">
+                  {{ preview.modo.nombre }} (×{{ preview.modo.multiplicador }})
+                </span>
+              </div>
+
+              <!-- Body -->
+              <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                <!-- 3 Tarjetas de Precios Redondeados -->
+                <div class="grid grid-cols-3 gap-2 text-center">
+                  <div class="bg-[#121312] border border-zinc-800/80 rounded-lg p-2.5">
+                    <p class="text-[9px] uppercase tracking-wider text-zinc-500 font-bold">Base</p>
+                    <p class="mt-1 text-base font-black text-zinc-300">
+                      S/ {{ preview.precioInicial }}
+                    </p>
+                  </div>
+                  <div class="bg-[#121312] border border-emerald-900/50 rounded-lg p-2.5">
+                    <p class="text-[9px] uppercase tracking-wider text-emerald-500 font-bold">Mínimo</p>
+                    <p class="mt-1 text-base font-black text-emerald-400">
+                      S/ {{ preview.precioMinimo }}
+                    </p>
+                  </div>
+                  <div class="bg-[#121312] border border-orange-900/50 rounded-lg p-2.5">
+                    <p class="text-[9px] uppercase tracking-wider text-orange-500 font-bold">Máximo</p>
+                    <p class="mt-1 text-base font-black text-orange-400">
+                      S/ {{ preview.precioMaximo }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Tarjeta Principal: Precio Seleccionado -->
+                <div class="rounded-xl border border-orange-900/40 bg-gradient-to-br from-orange-950/30 to-[#121312] p-4 text-center">
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-zinc-400">
+                    Precio Final Unitario Seleccionado
+                  </p>
+                  <div class="mt-1 flex items-baseline justify-center gap-1">
+                    <span class="text-xs font-normal text-zinc-400">S/</span>
+                    <span class="text-3xl font-black text-white tracking-tight">
+                      {{ precioActual() }}
+                    </span>
+                    <span class="text-[11px] text-zinc-500">/ unidad</span>
+                  </div>
+
+                  <!-- Slider Interactivo de Rango -->
+                  <div class="mt-3 px-2">
+                    <input
+                      type="range"
+                      [min]="preview.precioMinimo"
+                      [max]="preview.precioMaximo"
+                      step="1"
+                      [value]="precioActual()"
+                      [disabled]="preview.precioMinimo === preview.precioMaximo"
+                      (input)="updatePrecioFinalManual($event)"
+                      class="h-1.5 w-full cursor-pointer accent-orange-500 disabled:cursor-not-allowed"
+                    />
+                    <div class="mt-1 flex justify-between text-[10px] font-medium text-zinc-500">
+                      <span>Mín: S/ {{ preview.precioMinimo }}</span>
+                      <span>Máx: S/ {{ preview.precioMaximo }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subtotal por la cantidad actual -->
+                <div class="rounded-lg bg-[#121312] border border-zinc-800/80 px-3.5 py-2 flex items-center justify-between text-xs">
+                  <span class="text-zinc-400">
+                    Subtotal ({{ piezaForm.get('cantidad')?.value ?? 1 }} u. × S/ {{ precioActual() }}):
+                  </span>
+                  <span class="font-bold text-white text-sm">
+                    S/ {{ (piezaForm.get('cantidad')?.value ?? 1) * precioActual() }}
+                  </span>
+                </div>
+
+                <!-- Micro desglose de costos directos -->
+                <details class="text-[10px] text-zinc-500 border-t border-zinc-800/60 pt-2">
+                  <summary class="cursor-pointer hover:text-zinc-300">
+                    Ver desglose técnico de costos directos
+                  </summary>
+                  <div class="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-zinc-400 bg-black/30 p-2.5 rounded-lg">
+                    <div>Costo Material: <span class="text-zinc-200">S/ {{ preview.costoTotal | number: '1.2-2' }}</span></div>
+                    <div>Modo Entrega: <span class="text-zinc-200">×{{ preview.modo.multiplicador }}</span></div>
+                    <div>Gramos calculados: <span class="text-zinc-200">{{ preview.gramos | number: '1.0-2' }} g</span></div>
+                    <div>Rango permitido: <span class="text-zinc-200">[{{ preview.precioMinimo }} - {{ preview.precioMaximo }}]</span></div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- Footer: El ÚNICO botón para agregar al paquete -->
+              <div class="px-5 py-3 border-t border-zinc-800 bg-[#131413] text-right">
+                <button
+                  type="button"
+                  class="h-9 px-5 rounded-lg bg-orange-600 text-xs font-bold uppercase tracking-wider text-white shadow transition hover:bg-orange-500 active:scale-95 flex items-center justify-center gap-1.5 ml-auto"
+                  (click)="onAgregarPieza()"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Agregar al Paquete
+                </button>
+              </div>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- Visor 3D: Debajo de los dos bloques -->
+      <section class="rounded-xl border border-zinc-800 bg-[#171817] p-4 shadow-lg">
+        <stl-3d-model [stlUrl]="stlUrl()" [stlData]="stlData()" />
+      </section>
+
+      <!-- Mensaje de error al guardar con auto-dismiss 3s -->
+      @if (errorGuardado()) {
+        <div class="rounded-lg border border-red-500/50 bg-red-950/40 p-4 text-xs text-red-300 flex items-center justify-between animate-fade-in">
+          <div>
+            <strong>Error al guardar cotización:</strong> {{ errorGuardado() }}
+          </div>
+          <span class="text-[10px] text-red-400">se cerrará en 3s</span>
+        </div>
+      }
+    </div>
+
+    <!-- Columna lateral: resumen y botón guardar -->
+    <aside class="w-full xl:sticky xl:top-6">
+      <cotizaciones-list
+        [piezas]="piezas()"
+        [totalCotizacion]="totalCotizacion()"
+        [modoEntrega]="selectedMode()"
+        [puedeGuardar]="puedeGuardar()"
+        [isSaving]="isSaving()"
+        (guardarCotizacion)="onGuardarCotizacion()"
+        (eliminarPieza)="onEliminarPieza($event)"
+      />
+    </aside>
+  </div>
+
+  <!-- Modal de confirmación de guardado exitoso -->
+  @if (mostrarExito()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      role="presentation"
+      (click)="cerrarExito()"
+    >
+      <section
+        class="w-full max-w-sm rounded-xl border border-emerald-800 bg-[#171a18] p-6 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        (click)="$event.stopPropagation()"
+      >
+        <div
+          class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 mx-auto"
+        >
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" />
+          </svg>
+        </div>
+        <p class="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">
+          Operación Exitosa
+        </p>
+        <h2 class="mt-2 text-center text-lg font-bold text-white">
+          ¡Cotización Guardada en la Base de Datos!
+        </h2>
+        <p class="mt-2 text-center text-xs text-zinc-400">
+          El pedido ha sido persistido con éxito y está disponible en la tabla del Panel de Administración.
+        </p>
+        <button
+          type="button"
+          class="mt-6 h-10 w-full rounded-lg bg-emerald-600 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-emerald-500"
+          (click)="cerrarExito()"
+        >
+          Aceptar
+        </button>
+      </section>
+    </div>
+  }
+</main>

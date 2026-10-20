@@ -1,0 +1,103 @@
+<section class="w-full text-zinc-300">
+  <button
+    type="button"
+    class="flex w-full items-center justify-between border-b border-zinc-700 border-l-2 border-l-orange-500 py-3 pl-4 text-left transition hover:bg-white/5"
+    (click)="isOpen.set(!isOpen())"
+    [attr.aria-expanded]="isOpen()"
+  >
+    <span class="text-sm font-semibold uppercase tracking-wider text-zinc-100"
+      >Configuración de cálculo y parámetros</span
+    >
+    <span class="text-xl leading-none text-zinc-400">{{ isOpen() ? '−' : '+' }}</span>
+  </button>
+
+  @if (isOpen() && configuracion(); as cfg) {
+    <div class="space-y-5 py-5">
+      <section class="border border-zinc-800 bg-[#151615] p-4">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-orange-400">General</h3>
+          <span class="text-[10px] text-zinc-500">Parámetros de costos globales</span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-5 gap-y-3 md:grid-cols-4">
+          @for (field of generalFields; track field.key) {
+            <label class="min-w-0 space-y-1 text-[11px] text-zinc-400">
+              <span class="block min-h-7">{{ field.label }}</span>
+              <input
+                type="number"
+                min="0"
+                [step]="field.step"
+                [value]="cfg.general[field.key]"
+                (change)="updateGeneral(field.key, $event)"
+                class="h-9 w-full border-b border-zinc-700 bg-transparent px-1 text-sm text-white outline-none focus:border-orange-500"
+              />
+            </label>
+          }
+        </div>
+      </section>
+
+      <section class="border border-zinc-800 bg-[#151615] p-4">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-orange-400">Máquinas</h3>
+          <span class="text-[10px] text-zinc-500">Configuración por tecnología</span>
+        </div>
+        <div class="grid gap-5 md:grid-cols-2">
+          @for (technology of tecnologias; track technology) {
+            @if (cfg.maquinas[technology]; as machine) {
+              <div
+                class="border-l-2 pl-4"
+                [class.border-orange-500]="technology === 'FILAMENTO'"
+                [class.border-cyan-500]="technology === 'RESINA'"
+              >
+                <h4 class="mb-3 text-sm font-semibold text-zinc-100 flex items-center justify-between">
+                  <span>{{ technology === 'FILAMENTO' ? 'Filamento (FDM)' : 'Resina (SLA)' }}</span>
+                  @if (machine.nombreMaquina) {
+                    <span class="text-xs font-normal text-zinc-400">{{ machine.nombreMaquina }}</span>
+                  }
+                </h4>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+                  @for (field of machineFields; track field.key) {
+                    @if (machine[field.key] !== null) {
+                      <label class="min-w-0 space-y-1 text-[10px] text-zinc-400">
+                        <span class="block">{{ field.label }}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          [step]="field.step"
+                          [value]="machine[field.key]"
+                          (change)="updateMachine(technology, field.key, $event)"
+                          class="h-8 w-full border-b border-zinc-700 bg-transparent px-1 text-xs text-white outline-none focus:border-orange-500"
+                        />
+                      </label>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </section>
+
+      <section
+        class="flex flex-col gap-2 border border-zinc-800 bg-[#151615] p-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-orange-400">Modo de entrega</h3>
+          <p class="mt-1 text-[11px] text-zinc-500">
+            Ajusta los plazos y el multiplicador de urgencia aplicado al precio.
+          </p>
+        </div>
+        <select
+          [value]="modoSeleccionado()"
+          (change)="onModoChange($event)"
+          class="h-10 min-w-56 border border-zinc-700 bg-[#121212] px-3 text-sm text-white outline-none focus:border-orange-500 rounded"
+        >
+          @for (mode of modosDisponibles; track mode.valor) {
+            <option [value]="mode.valor">
+              {{ mode.nombre }} · {{ mode.plazoEntrega }} (×{{ mode.multiplicador }})
+            </option>
+          }
+        </select>
+      </section>
+    </div>
+  }
+</section>

@@ -1,0 +1,34 @@
+<section class="w-full border-t border-zinc-800 pt-4 font-sans">
+  <div class="mb-3 flex items-center justify-between gap-4">
+    <div>
+      <h3 class="text-sm font-semibold text-zinc-100">Visor de Modelo 3D</h3>
+      <p class="mt-1 text-[11px] text-zinc-500">
+        {{ stlData()?.nombreArchivo ?? 'Sin archivo STL seleccionado' }}
+      </p>
+    </div>
+    <label class="flex cursor-pointer items-center gap-2 text-xs text-zinc-300">
+      <span>Activar visor 3D</span>
+      <input type="checkbox" class="peer sr-only" [checked]="enabled()" (change)="onToggle($event)" />
+      <span
+        class="relative h-5 w-9 rounded-full bg-zinc-700 transition peer-checked:bg-orange-600 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4"
+      ></span>
+    </label>
+  </div>
+
+  @if (enabled() && stlUrl(); as url) {
+    <div class="h-72 w-full overflow-hidden rounded-lg border border-zinc-800 bg-[#0d0d0d]">
+      <stl-model-viewer
+        [stlModels]="[url]"
+        [hasControls]="true"
+        [centered]="true"
+        class="block h-full w-full"
+      ></stl-model-viewer>
+    </div>
+  } @else if (enabled()) {
+    <div
+      class="flex h-28 items-center justify-center rounded-lg border border-dashed border-zinc-800 text-xs text-zinc-500"
+    >
+      Carga y valida un archivo STL para visualizar la malla 3D interactiva.
+    </div>
+  }
+</section>

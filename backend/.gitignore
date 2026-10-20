@@ -1,0 +1,16 @@
+node_modules/
+/npm-debug.log*
+
+dist/
+build/
+
+.env
+.env.local
+.env.*.local
+
+*.log
+.docker-compose.local.yml
+
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,140 @@
+<aside class="w-full border border-zinc-800 bg-[#181818] font-sans rounded-xl overflow-hidden shadow-xl">
+  <div class="border-b border-zinc-800 p-4 bg-[#141514]">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-sm font-semibold text-white">Resumen del paquete</h3>
+        <p class="mt-0.5 text-[11px] text-zinc-500">{{ piezas().length }} pieza(s) agregada(s)</p>
+      </div>
+      <span class="rounded bg-orange-950/60 border border-orange-800/80 px-2 py-0.5 text-[10px] font-semibold text-orange-400">
+        {{ modoNombre }}
+      </span>
+    </div>
+  </div>
+
+  @if (piezas().length === 0) {
+    <div class="px-4 py-12 text-center text-xs text-zinc-500">
+      <svg class="mx-auto mb-2 h-8 w-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+      Aún no hay piezas en el paquete. Configura una y pulsa "Agregar al Paquete".
+    </div>
+  }
+
+  @if (piezas().length > 0) {
+    <div class="max-h-[55vh] space-y-2.5 overflow-y-auto p-3">
+      @for (pieza of piezas(); track pieza.id) {
+        <article
+          class="border bg-[#121212] p-3 rounded-lg relative group transition hover:border-zinc-700"
+          [class.border-orange-900/60]="pieza.tecnologia === 'FILAMENTO'"
+          [class.border-cyan-900/60]="pieza.tecnologia === 'RESINA'"
+        >
+          <header class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <h4
+                class="truncate text-xs font-semibold text-zinc-100"
+                [title]="pieza.nombreArchivo"
+              >
+                {{ pieza.nombreArchivo }}
+              </h4>
+              <p class="mt-0.5 text-[10px] text-zinc-400">
+                {{ pieza.nombreMaterial }} · {{ pieza.cantidad }} u.
+              </p>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span
+                class="border px-1.5 py-0.5 text-[9px] font-semibold uppercase rounded"
+                [class.border-orange-800]="pieza.tecnologia === 'FILAMENTO'"
+                [class.bg-orange-950/50]="pieza.tecnologia === 'FILAMENTO'"
+                [class.text-orange-300]="pieza.tecnologia === 'FILAMENTO'"
+                [class.border-cyan-800]="pieza.tecnologia === 'RESINA'"
+                [class.bg-cyan-950/50]="pieza.tecnologia === 'RESINA'"
+                [class.text-cyan-300]="pieza.tecnologia === 'RESINA'"
+              >
+                {{ pieza.tecnologia === 'FILAMENTO' ? 'FDM' : 'SLA' }}
+              </span>
+
+              <!-- Botón Eliminar Pieza con Icono Tacho -->
+              <button
+                type="button"
+                (click)="onEliminar(pieza.id, $event)"
+                class="h-6 w-6 rounded flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-950/40 transition"
+                title="Eliminar esta pieza del paquete"
+                aria-label="Eliminar pieza"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="mt-2.5 flex items-end justify-between border-t border-zinc-800/80 pt-2">
+            <div>
+              <p class="text-[9px] uppercase tracking-wider text-zinc-500">
+                {{ pieza.cantidad }} × S/ {{ pieza.precioFinal }}
+              </p>
+              <p class="text-[10px] font-medium text-zinc-400">Total pieza</p>
+            </div>
+            <span class="text-sm font-bold text-white">
+              S/ {{ pieza.precioTotal }}
+            </span>
+          </div>
+
+          <details class="mt-1.5 border-t border-zinc-800/60 pt-1 text-[10px]">
+            <summary class="cursor-pointer text-zinc-500 hover:text-zinc-300">
+              Detalles
+            </summary>
+            <dl class="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-zinc-400">
+              <div>
+                <dt class="text-zinc-500">Gramos:</dt>
+                <dd class="text-zinc-200">{{ pieza.gramos | number:'1.0-2' }} g</dd>
+              </div>
+              <div>
+                <dt class="text-zinc-500">Tiempo:</dt>
+                <dd class="text-zinc-200">{{ pieza.horas }}h {{ pieza.minutos }}m</dd>
+              </div>
+              <div>
+                <dt class="text-zinc-500">P. Inicial:</dt>
+                <dd class="text-zinc-200">S/ {{ pieza.precioInicial }}</dd>
+              </div>
+              <div>
+                <dt class="text-zinc-500">Rango:</dt>
+                <dd class="text-zinc-200">S/ {{ pieza.precioMinimo }} - {{ pieza.precioMaximo }}</dd>
+              </div>
+            </dl>
+          </details>
+        </article>
+      }
+    </div>
+  }
+
+  <footer class="border-t border-zinc-800 p-4 bg-[#141514]">
+    <div class="mb-4 flex items-baseline justify-between">
+      <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Total Paquete</span>
+      <span class="text-2xl font-black text-orange-400">
+        <span class="text-sm font-normal text-zinc-400">S/ </span>{{ totalCotizacion() }}
+      </span>
+    </div>
+
+    @if (!puedeGuardar()) {
+      <p class="mb-3 text-[10px] text-zinc-500">
+        Completa nombre, teléfono, pedido y añade al menos 1 pieza para guardar.
+      </p>
+    }
+
+    <button
+      type="button"
+      class="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-orange-600 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-orange-500 active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+      [disabled]="!puedeGuardar() || isSaving()"
+      (click)="guardarCotizacion.emit()"
+    >
+      @if (isSaving()) {
+        <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+        <span>Guardando cotización...</span>
+      } @else {
+        <span>Guardar Cotización</span>
+      }
+    </button>
+  </footer>
+</aside>

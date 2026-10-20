@@ -1,0 +1,207 @@
+@if (isOpen()) {
+  <div
+    class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+    (click)="onBackdropClick($event)"
+  >
+    <div
+      class="relative flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl border border-zinc-800 bg-[#161716] shadow-2xl overflow-hidden font-sans text-zinc-300"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-zinc-800 bg-[#121312] px-6 py-4">
+        <div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-orange-400">
+              Cotización #{{ cotizacion()?.id }}
+            </span>
+            @if (cotizacion(); as c) {
+              <span
+                class="rounded px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+                [class.bg-amber-950/60]="c.estado === 'PENDIENTE'"
+                [class.text-amber-400]="c.estado === 'PENDIENTE'"
+                [class.border]="true"
+                [class.border-amber-800]="c.estado === 'PENDIENTE'"
+                [class.bg-emerald-950/60]="c.estado === 'ACEPTADA'"
+                [class.text-emerald-400]="c.estado === 'ACEPTADA'"
+                [class.border-emerald-800]="c.estado === 'ACEPTADA'"
+                [class.bg-red-950/60]="c.estado === 'RECHAZADA'"
+                [class.text-red-400]="c.estado === 'RECHAZADA'"
+                [class.border-red-800]="c.estado === 'RECHAZADA'"
+                [class.bg-purple-950/60]="c.estado === 'EN_PROCESO'"
+                [class.text-purple-400]="c.estado === 'EN_PROCESO'"
+                [class.border-purple-800]="c.estado === 'EN_PROCESO'"
+                [class.bg-blue-950/60]="c.estado === 'ENVIADA'"
+                [class.text-blue-400]="c.estado === 'ENVIADA'"
+                [class.border-blue-800]="c.estado === 'ENVIADA'"
+              >
+                {{ c.estado }}
+              </span>
+            }
+          </div>
+          <h2 class="mt-1 text-lg font-bold text-white">
+            {{ cotizacion()?.nombrePedido ?? 'Detalle de Cotización' }}
+          </h2>
+        </div>
+
+        <button
+          type="button"
+          (click)="close.emit()"
+          class="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+          aria-label="Cerrar modal"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body / Scrollable Content -->
+      <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        @if (isLoading()) {
+          <div class="flex h-64 items-center justify-center gap-3 text-sm text-orange-400">
+            <span class="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></span>
+            <span>Cargando detalle de cotización...</span>
+          </div>
+        } @else if (cotizacion(); as c) {
+          <!-- Datos generales y cliente -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-lg border border-zinc-800 bg-[#121312] p-4">
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Cliente</p>
+              <p class="mt-1 text-sm font-semibold text-white">{{ c.nombreCliente }}</p>
+              <p class="mt-1 text-xs text-zinc-400">{{ c.telefonoCliente }}</p>
+              @if (c.correoCliente) {
+                <p class="text-xs text-zinc-500 truncate">{{ c.correoCliente }}</p>
+              }
+            </div>
+
+            <div class="rounded-lg border border-zinc-800 bg-[#121312] p-4">
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Entrega y Plazos</p>
+              <p class="mt-1 text-sm font-semibold text-orange-400">
+                Modo {{ c.modoEntrega.modo }}
+              </p>
+              <p class="mt-1 text-xs text-zinc-400">Plazo: {{ c.modoEntrega.plazoEntrega }}</p>
+              <p class="text-xs text-zinc-500">Multiplicador: ×{{ c.modoEntrega.multiplicador }}</p>
+            </div>
+
+            <div class="rounded-lg border border-zinc-800 bg-[#121312] p-4">
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Total y Vigencia</p>
+              <p class="mt-1 text-xl font-black text-white">
+                S/ {{ c.precioTotal }}
+              </p>
+              <p class="mt-1 text-xs text-zinc-400">
+                Vence: {{ c.venceEl | slice:0:10 }}
+              </p>
+              <p class="text-[10px] text-zinc-500">Creado: {{ c.createdAt | slice:0:10 }}</p>
+            </div>
+          </div>
+
+          @if (c.comentarioPedido) {
+            <div class="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-3 text-xs">
+              <span class="font-semibold text-zinc-400">Comentarios del cliente / notas:</span>
+              <p class="mt-1 text-zinc-300">{{ c.comentarioPedido }}</p>
+            </div>
+          }
+
+          <!-- Desglose de piezas cotizadas -->
+          <div>
+            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-300">
+              Piezas Incluidas ({{ c.piezas.length }})
+            </h3>
+
+            <div class="space-y-4">
+              @for (p of c.piezas; track p.id) {
+                <div class="rounded-lg border border-zinc-800 bg-[#121312] p-4">
+                  <!-- Cabecera de pieza -->
+                  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+                    <div>
+                      <h4 class="text-sm font-bold text-white">{{ p.modeloStl.nombreArchivo }}</h4>
+                      <p class="text-xs text-zinc-400 mt-0.5">
+                        {{ p.material.nombre }} {{ p.material.marca ? '(' + p.material.marca + ')' : '' }}
+                        · <span class="text-orange-400 uppercase font-semibold">{{ p.tecnologia }}</span>
+                      </p>
+                    </div>
+
+                    <div class="text-right">
+                      <span class="text-xs font-semibold text-zinc-400">
+                        {{ p.cantidad }} u. × S/ {{ p.precios.precioFinalPorUnidad }} =
+                      </span>
+                      <span class="ml-2 text-base font-black text-orange-400">
+                        S/ {{ p.precios.precioFinalTotal }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Geometría STL y datos de producción -->
+                  <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-zinc-400">
+                    <div class="bg-zinc-900/50 p-2 rounded">
+                      <span class="text-[10px] text-zinc-500 block">Dimensiones</span>
+                      <strong class="text-zinc-200">
+                        {{ p.modeloStl.dimensionXMm }} × {{ p.modeloStl.dimensionYMm }} × {{ p.modeloStl.dimensionZMm }} mm
+                      </strong>
+                    </div>
+
+                    <div class="bg-zinc-900/50 p-2 rounded">
+                      <span class="text-[10px] text-zinc-500 block">Volumen y Peso</span>
+                      <strong class="text-zinc-200">
+                        {{ p.modeloStl.volumenCm3 | number: '1.2-2' }} cm³ · {{ p.gramosPorUnidad }} g
+                      </strong>
+                    </div>
+
+                    <div class="bg-zinc-900/50 p-2 rounded">
+                      <span class="text-[10px] text-zinc-500 block">Tiempo de impresión</span>
+                      <strong class="text-zinc-200">
+                        {{ p.horasPorUnidad }} h · {{ p.minutosManoObraPorUnidad }} m m.o.
+                      </strong>
+                    </div>
+
+                    <div class="bg-zinc-900/50 p-2 rounded">
+                      <span class="text-[10px] text-zinc-500 block">Rango Precios backend</span>
+                      <strong class="text-zinc-200">
+                        S/ {{ p.precios.precioMinimoPorUnidad }} - {{ p.precios.precioMaximoPorUnidad }}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <!-- Desglose de costos directos calculados por el backend -->
+                  <details class="mt-3 border-t border-zinc-800/60 pt-2 text-xs">
+                    <summary class="cursor-pointer font-medium text-orange-400 hover:text-orange-300">
+                      Ver desglose de costos detallado
+                    </summary>
+                    <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-zinc-400 bg-black/40 p-3 rounded">
+                      <div>Material: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoMaterial }}</span></div>
+                      <div>Electricidad: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoElectricidad }}</span></div>
+                      <div>Desgaste Máquina: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoDesgasteMaquina }}</span></div>
+                      <div>Mano de Obra: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoManoObra }}</span></div>
+                      <div>Setup: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoSetup }}</span></div>
+                      <div>Insumos Extra: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoInsumosExtra }}</span></div>
+                      @if (p.desgloseCostos.costoPostProceso !== null) {
+                        <div>Postproceso: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoPostProceso }}</span></div>
+                      }
+                      @if (p.desgloseCostos.costoFallos !== null) {
+                        <div>Margen Fallos: <span class="text-zinc-200 font-semibold">S/ {{ p.desgloseCostos.costoFallos }}</span></div>
+                      }
+                      <div class="col-span-2 sm:col-span-4 border-t border-zinc-800 pt-1 font-semibold text-emerald-400">
+                        Costo Directo por Unidad: S/ {{ p.desgloseCostos.costoDirectoPorUnidad }}
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end border-t border-zinc-800 bg-[#121312] px-6 py-4">
+        <button
+          type="button"
+          (click)="close.emit()"
+          class="rounded-lg bg-zinc-800 px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-zinc-700"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}

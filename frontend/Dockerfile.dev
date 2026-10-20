@@ -1,0 +1,15 @@
+ARG NODE_VERSION=26.8.1
+FROM node:${NODE_VERSION}-slim
+
+RUN npm install -g @angular/cli@20.3.37
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 4200
+
+CMD ["npm", "start"]

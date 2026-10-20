@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────── Enums (fijos en código) ─────────────
+
+enum Tecnologia {
+  FILAMENTO
+  RESINA
+}
+
+enum ModoEntrega {
+  NOCTURNO
+  DIURNO
+  EXPRESS
+}
+
+enum EstadoCotizacion {
+  PENDIENTE
+  ENVIADA
+  ACEPTADA
+  EN_PROCESO
+  RECHAZADA
+  VENCIDA
+}
+
+enum FormatoStl {
+  BINARIO
+  ASCII
+}
+
+// ───────────── Datos maestros (se editan solo desde el panel de configuración) ─────────────
+
+model Material {
+  id                Int        @id @default(autoincrement())
+  tecnologia        Tecnologia
+  nombre            String
+  marca             String?
+  precioPorKg       Decimal    @db.Decimal(10, 2)
+  densidadGramosCm3 Float
+  activo            Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  cotizacionStls CotizacionStl[]
+
+  @@index([tecnologia, activo])
+}
+
+// Una sola fila (id = 1)
+model ConfiguracionGeneral {
+  id                        Int      @id @default(1)
+  precioKwh                 Decimal  @db.Decimal(10, 4)
+  tarifaManoObraPorHora     Decimal  @db.Decimal(10, 2)
+  setupPorDefecto           Decimal  @db.Decimal(10, 2)
+  minutosManoObraPorDefecto Int      @default(75)
+  multiplicadorPrecioBase   Decimal  @db.Decimal(5, 2)
+  porcentajeRangoInferior   Decimal  @db.Decimal(5, 2)
+  porcentajeRangoSuperior   Decimal  @db.Decimal(5, 2)
+  diasVencimiento           Int      @default(7)
+  updatedAt                 DateTime @updatedAt
+}
+
+// Una fila por tecnología
+model ConfiguracionMaquina {
+  id            Int        @id @default(autoincrement())
+  tecnologia    Tecnologia @unique
+  nombreMaquina String?
+
+  consumoWatts  Int
+  vidaUtilHoras Int
+  costoMaquina  Decimal @db.Decimal(10, 2)
+
+  camaXMm Int
+  camaYMm Int
+  camaZMm Int
+
+  // Solo resina (null en filamento)
+  porcentajeMerma  Decimal? @db.Decimal(5, 2)
+  porcentajeFallos Decimal? @db.Decimal(5, 2)
+  costoPostProceso Decimal? @db.Decimal(10, 2)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ───────────── Archivos ─────────────
+
+model ModeloStl {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  hash                String     @unique // SHA-256 del contenido
+  nombreArchivo       String
+  tamanoBytes         Int
+  formato             FormatoStl
+  claveAlmacenamiento String
+
+  cantidadTriangulos Int
+  volumenCm3         Float
+  areaMm2            Float
+  dimensionXMm       Float
+  dimensionYMm       Float
+  dimensionZMm       Float
+  esMallaCerrada     Boolean
+
+  cotizacionStls CotizacionStl[]
+}
+
+// ───────────── Cotización ─────────────
+
+model Cotizacion {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Cliente
+  nombreCliente   String
+  telefonoCliente String
+  correoCliente   String?
+  nombrePedido    String?
+  direccionPdf    String?
+
+  // Estado
+  estado      EstadoCotizacion @default(PENDIENTE)
+  venceEl     DateTime
+  notaInterna String?
+
+  // Modo de entrega (enum + copia de lo que valían al cotizar)
+  modoEntrega       ModoEntrega
+  modoMultiplicador Decimal     @db.Decimal(5, 2)
+  modoPlazoEntrega  String
+
+  // Configuración inicial usada en esta cotización (copia)
+  precioKwh               Decimal @db.Decimal(10, 4)
+  tarifaManoObraPorHora   Decimal @db.Decimal(10, 2)
+  multiplicadorPrecioBase Decimal @db.Decimal(5, 2)
+  porcentajeRangoInferior Decimal @db.Decimal(5, 2)
+  porcentajeRangoSuperior Decimal @db.Decimal(5, 2)
+  parametrosMaquinas      Json // filamento y resina: watts, vida útil, costo, cama, merma, fallos, post-proceso
+
+  // Total
+  precioTotal Int // suma de los precios finales totales de cada STL
+
+  stls CotizacionStl[]
+
+  @@index([nombreCliente])
+  @@index([telefonoCliente])
+  @@index([estado])
+  @@index([venceEl])
+  @@index([createdAt])
+}
+
+model CotizacionStl {
+  id Int @id @default(autoincrement())
+
+  cotizacionId Int
+  cotizacion   Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+
+  modeloStlId Int
+  modeloStl   ModeloStl @relation(fields: [modeloStlId], references: [id])
+
+  // Lo que se escribió (todo por unidad)
+  tecnologia               Tecnologia
+  rellenoPorcentaje        Int? // solo filamento
+  gramosPorUnidad          Float
+  horasPorUnidad           Float
+  minutosManoObraPorUnidad Float
+  setupPorUnidad           Decimal    @db.Decimal(10, 2)
+  insumosExtraPorUnidad    Decimal    @db.Decimal(10, 2)
+  cantidad                 Int        @default(1)
+
+  // Material (referencia + copia de lo usado)
+  materialId          Int
+  material            Material @relation(fields: [materialId], references: [id])
+  materialNombre      String
+  materialMarca       String?
+  materialPrecioPorKg Decimal  @db.Decimal(10, 2)
+
+  // Desglose de costo por unidad
+  gramosConMermaPorUnidad Float? // solo resina
+  costoMaterial           Decimal  @db.Decimal(10, 2)
+  costoElectricidad       Decimal  @db.Decimal(10, 2)
+  costoDesgasteMaquina    Decimal  @db.Decimal(10, 2)
+  costoManoObra           Decimal  @db.Decimal(10, 2)
+  costoSetup              Decimal  @db.Decimal(10, 2)
+  costoInsumosExtra       Decimal  @db.Decimal(10, 2)
+  costoPostProceso        Decimal? @db.Decimal(10, 2) // solo resina
+  costoFallos             Decimal? @db.Decimal(10, 2) // solo resina
+  costoDirectoPorUnidad   Decimal  @db.Decimal(10, 2)
+
+  // Precios por unidad (enteros, en soles)
+  precioInicialPorUnidad Int
+  precioMinimoPorUnidad  Int
+  precioMaximoPorUnidad  Int
+  precioFinalPorUnidad   Int // el que eligió el trabajador con la barra
+
+  // Total de esta pieza = precioFinalPorUnidad × cantidad
+  precioFinalTotal Int
+
+  @@index([cotizacionId])
+  @@index([modeloStlId])
+  @@index([materialId])
+}
