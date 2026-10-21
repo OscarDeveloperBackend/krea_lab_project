@@ -3,7 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: krea_lab_frontend
+    image: krea_lab_frontend_dev:latest
+    container_name: krea_lab_frontend_dev
     ports:
       - '4200:4200'
     volumes:

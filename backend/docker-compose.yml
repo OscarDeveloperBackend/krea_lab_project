@@ -21,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    image: krea_lab_backend_dev:latest
     container_name: krea_lab_backend_dev
     restart: unless-stopped
     ports:
